@@ -727,13 +727,13 @@ Results are presented in the table below
 
 
 ### tl, dr
-Based on a relaxed criteria the following topics passed this step
+Based on a relaxed criteria the following topics pass this step
 1. **Identity Checks** (`ck10`, `ck11`)
 2. **International Relations** (`ck16`, `ck17`)
 3. **Political Priorities** (`ck22`, `ck23`)
 4. **Protests** (`ck24`, `ck25`)
 5. **Budget Cuts** (`ck26`, `ck27`)
-6. **Political Values** (`ck38`, `ck39`)
+6. **Register of Crimes** (`ck28`, `ck29`)
 7. **NP: WhatsApp Audios** (`ck40`, `ck41`)
 8. **NP: Winter** (`ck44`, `ck45`)
 9. **NP: Cats** (`ck46`, `ck47`)
