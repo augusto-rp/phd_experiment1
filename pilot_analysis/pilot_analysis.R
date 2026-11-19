@@ -1401,8 +1401,10 @@ compRelSEM(omega_cinismo_cor)
 
 rm(group_summary)
 
+
+
 ######################### FREQUENCY SCALE 
-# 7.3 This scale was discarded after the first 45 measurements as it had EXTREMELY POOR CRONBACH
+# 7.3 This scale was discarded after the first 45 measurements as it had EXTREMELY POOR correlation among items
 
 
 cinis_fr<-bd[,c("VD05_01","VD06_01","VD07_01","VD08_01","VD09_01","VD10_01")] #frequency VD09 is inverted
@@ -1416,57 +1418,12 @@ cinis_fr<-cinis_fr%>%
   mutate(VD09_01=6-VD09_01)
 
 
-cor(cinis_fr, use = "everything", method = c("spearman")) #WHAT
+corTest(cinis_fr, use = "everything", method = c("spearman")) #WHAT
 # really really really low correlations
 
 
 
 # z. Codes and Ideas Testing ----------------------------------------------
-
-
-
-######################## Changes to comparision of ¿iamges to means ( differentiating between political means and non political means)
-# The comparision has to be made within political or non political memes. If all is together the mean of comparison for political memes will include values from non -political ones (which is higher)
-# see last section of code
-# I should have the same consideration in step 5
-
-lv      <- levels(fun_df$ck_)
-stopifnot(identical(lv, as.character(emm_ver@levels$ck_)))  # weights must follow the grid order
-dim_vec <- ifelse(parse_number(lv) <= 39, "political", "non-political") #over 39 are not political
-
-eff_within <- lapply(seq_along(lv), function(i) {
-  same <- dim_vec == dim_vec[i]
-  w <- rep(0, length(lv))
-  w[same] <- -1 / sum(same)
-  w[i] <- w[i] + 1
-  w
-})
-names(eff_within) <- lv
-
-dev_df <- contrast(emm_ver, method = eff_within) |>   # computed separately for H and S
-  summary(infer = TRUE, adjust = "none") |>           # no adjustment: descriptive, not a formal test
-  as.data.frame() |>
-  mutate(ck_id     = as.character(contrast),
-         dimension = ifelse(parse_number(ck_id) <= 39, "political", "non-political")) |>
-  dplyr::select(ck_id, dimension, version, dev = estimate, SE, lower.CL, upper.CL)
-
-
-
-dev_pooled <- contrast(emm_ver, method = "eff") |>
-  summary(infer = TRUE, adjust = "none") |>
-  as.data.frame() |>
-  mutate(ck_id = sub(" effect$", "", contrast)) |>
-  dplyr::select(ck_id, version, dev_pooled = estimate, SE_pooled = SE)
-
-dev_df |>
-  left_join(dev_pooled, by = c("ck_id", "version")) |>
-  group_by(dimension, version) |>
-  summarise(shift    = mean(dev - dev_pooled),  # dimension mean minus overall mean, sign reversed
-            sd_shift = sd(dev - dev_pooled),    # should be about 0 (a constant shift)
-            .groups = "drop")
-
-
-
 
 
 
@@ -1682,4 +1639,4 @@ plots <- map(var_ri, function(v) {
 
 
 library(patchwork)
-wrap_plots(plots, ncol = 3)
+wrap_plots(plots, ncol = 3) # tabla de frecuencia de cada item por separadp
