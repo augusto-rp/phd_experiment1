@@ -1,10 +1,3 @@
-llmcoder_setup(
-  provider   = "custom",
-  api_key    = Sys.getenv("OPENROUTER_API_KEY"),
-  model      = "qwen/qwen3-coder-next",
-  custom_url = "https://openrouter.ai/api/v1"
-)
-
 
 
 # Dependencies ------------------------------------------------------------
@@ -30,7 +23,7 @@ library(emmeans)
 
 options(scipen = 999)
 
-data<-read_excel(file.choose()) #139 unclean
+data<-read_excel("100_analysis/exp1_100.xlsx") #139 unclean
 data[data == -9]<-NA # transform -9 into NA
 
 
@@ -752,10 +745,6 @@ rm(topics, df_ao, df_cq,topics_long, df_cq_wide)
 # df_long <- df_long %>%
 #   mutate(fun_mean = rowMeans(cbind(fun_1, fun_2), na.rm = TRUE),
 #          of_mean  = rowMeans(cbind(of_1,  of_2 ), na.rm = TRUE))
-
-getwd() #once i setwd this will not be necessary
-write.xlsx(df_long, file="df_lmm")
-
 
 
 
