@@ -15,6 +15,7 @@ library(lmerTest)
 library(corrr)
 library(writexl)
 library(emmeans)
+library(purrr)
 
 
 
@@ -29,19 +30,20 @@ data[data == -9]<-NA # transform -9 into NA
 
 # Identify cases where CI01 != 1  No consent to use data
 data %>%
-  filter(!is.na(CI01), CI01 != 1)
+  filter(!is.na(CI01), CI01 != 1)  # 3 cases
 
 # Not finished
 data %>%
-  filter(!is.na(FINISHED), FINISHED != 1)
+  filter(!is.na(FINISHED), FINISHED != 1) # 11 cases
 
 
 # Identify cases where TIME_RSI >2
-high_rsi <- data %>% filter(TIME_RSI > 2) 
+data %>% filter(TIME_RSI > 2)  # 13 cases
 
 
-# Code that creates a df with cases where CV01_14 != 4, or CQ24_03 != 4 or CQ12_03 != 4 . Create in the df a column that says how many of conditions are true
-# CV01_14 is first attention check and CQ12/24_03 is the second according to assignement
+# Failures in Attention Checks
+# Code that creates a df with cases where CV01_14 != 4, or CQ24_03 != 4 or CQ12_03 != 4 .
+# CV01_14 is first attention check and CQ12/24_03 is the second according to assignment
 fail_checks <- data %>%
   filter(CV01_14 != 4 | CQ24_03 != 4 | CQ12_03 != 4) %>%
   mutate(
@@ -53,37 +55,41 @@ fail_checks <- data %>%
   )
 
 # Delete all columns in fail_any_check except CASE, REF,AS02 (H/S assignment) TIME_RSI, CV01_14, CQ12_03, CQ24_03
-fail_checks <- fail_checks %>% select(CASE, REF, TIME_RSI, AS02, CV01_14, CQ12_03, CQ24_03, fail_count)
+fail_checks <- fail_checks %>% select(CASE, TIME_RSI, AS02, CV01_14, CQ12_03, CQ24_03, fail_count)
 
+
+# 18 cases with RSI<2 AND THAT FAIL ONE ATTENTION CHECK
+
+# So 3+11+13+18 a total of 45 cases are eliminated
 
 # Filter cases
 data <- data %>%
   filter(!CASE %in% c("154", "156", "157", "177", "178", "179", "185", "190", "191", "202", "203", "206", "209", "211", "215", "216", "220", "221", "223", "225", "229", "230", "231", "236", "239", "241", "244", "246", "249", "251", "255", "267", "273", "274", "275", "277", "278", "282", "283", "286", "289", "295", "300", "301", "303")) 
 
 
-# Search for tther cases with suspicously low times and add to the list above (less than 2 minutes)
+# Search for tther cases with suspiciously low times and add to the list above (less than 2 minutes)
 describe(data$TIME_SUM) 
 
-
+rm(fail_checks)
 
 # Definition of constructs
 
-# Cynicism Items
+##### Cynicism Items
 cinismo_list <- c("CY02_01","CY02_02","CY02_03","CY02_04","CY02_05","CY02_06", "CY02_07","CY02_08")
 
 
-# Tolerance for ambiguity
+##### Tolerance for ambiguity
+# The MSTAT-II scale from McLain adapted into spanish by Arquero and McLain consists of 13 items that measure differnt dimentions of these construct
+# In these only the items concerning Attitudes towards ambiguous stimuli in general (CV01_01, CV01_03,CV01_07, CV01_11, CV01_13) AND insoluble stimuli (CV01_02, CV01_05, CV01_09) were considered
+
 ta_list <- c("CV01_01","CV01_02","CV01_03","CV01_05","CV01_07","CV01_09", "CV01_11","CV01_13")
 
-# The MSTAT-II scale from McLain adapted into spanish by Arquero and McLain consists of 13 items that measure differnt dimentions of these construct
-# In these only the items concerning Attitudes towards ambiguoUs stimuli in general (CV01_01, CV01_03,CV01_07, CV01_11, CV01_13) AND insoluble stimuli (CV01_02, CV01_05, CV01_09) were considered
 
-
-# Relevance of Topics
+##### Relevance of Topics
 relevance<-c("SD03_01","SD03_02","SD03_03","SD03_04","SD03_05","SD03_06")
 
 
-# Manipulation checks (rating of funniness of images)
+##### Manipulation checks (rating of funniness of images)
 
   # Rating of funniness for people in H condition / Rating of offensiveness
 fun_h<-c("CQ01_01","CQ02_01","CQ03_01","CQ04_01","CQ05_01","CQ06_01","CQ07_01","CQ08_01","CQ09_01","CQ10_01","CQ11_01","CQ12_01")
@@ -94,7 +100,7 @@ fun_s<-c("CQ13_01","CQ14_01","CQ15_01","CQ16_01","CQ17_01","CQ18_01","CQ19_01","
 of_s<-c("CQ13_02","CQ14_02","CQ15_02","CQ16_02","CQ17_02","CQ18_02","CQ19_02","CQ20_02","CQ21_02","CQ22_02","CQ23_02","CQ24_02")
 
 
-# Funniness of rw memes in H condition
+  # Funniness of rw memes in H condition
 fun_h_rw<-c("CQ01_01","CQ03_01","CQ05_01")
   # Funnines of lw memes in H condition
 fun_h_lw<-c("CQ02_01","CQ04_01","CQ06_01")
@@ -106,15 +112,15 @@ fun_s_rw<-c("CQ13_01","CQ15_01","CQ17_01")
 fun_s_lw<-c("CQ14_01","CQ16_01","CQ18_01")
 
 
-
-
 # in h from CQ01 to CQ06 are the political memes and the other not political
 # in s from CQ13 to CQ18 are the political texts and the other not political
 
 
-#Factorization of variables
-data$SD01<-as.factor(data$SD01)
-data$SD07<-as.factor(data$SD07)
+# Funniness of non political memes in H condition
+fun_h_np<-c("CQ07_01","CQ08_01","CQ09_01","CQ10_01","CQ11_01","CQ12_01")
+
+# Funniness of of non political memes in S condition
+fun_s_np<-c("CQ19_01","CQ20_01","CQ21_01","CQ22_01","CQ23_01","CQ24_01")
 
 
 
@@ -126,21 +132,22 @@ data <- data %>%
 
 
 # Lets also check the average positive and negatives views towards the lw
-describe(data$AO03_01) #mean value of positive views towards the left
-describe(data$AO04_01) #mean value of negative views towards the left
-describe(data$ao_lw)
+describe(data$AO03_01) # mean value of positive views towards the left: 3.3
+describe(data$AO04_01) # mean value of negative views towards the left: 3.68
+describe(data$ao_lw) # mean oa: 0.85
 
   # Creating OA towards rw
 data <- data %>%
   mutate(ao_rw = ((AO03_02 + AO04_02) / 2) - abs(AO03_02 - AO04_02))
 
-describe(data$AO03_02) #mean value of positive views towards the right
-describe(data$AO04_02) #mean value of negative views towards the right
-describe(data$ao_rw)
+describe(data$AO03_02) #mean value of positive views towards the right 2.68
+describe(data$AO04_02) #mean value of negative views towards the right 4.56
+describe(data$ao_rw) # mean oa: 0.44
 
 
 table(data$ao_lw)
 table(data$ao_rw)
+
 
 # Create a correlation between ao_rw and ao_lw
 cor.test(data$ao_rw, data$ao_lw, exact=FALSE,method="spearman", conf.level = 0.95) # 0.46
@@ -224,7 +231,6 @@ cor.matrix(ao_np, alpha=0.05,method="spearman", p.adj="bonferroni",print=c ("cor
 
 
 
-
 # Create an variable called ao_pol that is the average of ao_ir, ao_sc, ao_bc
 
 # I have doubts this is a good ideas, as there seems to be weak correlations between topics of the same dimension
@@ -234,6 +240,10 @@ data <- data %>%
 
 data <- data %>%
   mutate(ao_npol = (ao_audio + ao_cats + ao_w) / 3)
+
+
+cor(data$ao_pol, data$ao_npol, method = "pearson") # Correlation between dimensions is 0.56
+
 
 
 data$AS02<-as.factor(data$AS02)
@@ -265,7 +275,8 @@ data %>%
   theme_minimal() +
   theme(legend.position = "top")
 
-
+# It is extremely tempting to get excited over what appears here that apparently shows higher ao for H condition. 
+# But it is important to avoid drawing conclusion out ot a heavily underpowered pilot!!!
 
 
   # Create grouping of ideological position
@@ -281,10 +292,6 @@ data <- data %>%
   )
 
 
-table(data$id_pol)
-round(100 * prop.table(table(data$id_pol)), 2) # 28% lw  27% rw 45% center/not aligned 
-
-data$id_pol<-as.factor(data$id_pol)
 
 
   # Lets create an overall value of cynicism per person
@@ -293,30 +300,11 @@ data$cinis_g <- rowMeans(data[, cinismo_list], na.rm = TRUE)
 
 describe(data$cinis_g)
 
-# Create a boxplot of cinis_g
-ggplot(data, aes(y = cinis_g)) +
-  geom_boxplot() +
-  labs(
-    title = "Distribution of Overall Cynicism (cinis_g)",
-    y = "Cynicism Score"
-  ) +
-  theme_minimal()
-
-# Lets see differences between conditiosn
-
-cinis_data<-subset(data, AS02 %in% c(1,2)) #remember that CY02_07 and CY02_08 come from a differente scale
-
-aggregate(cinis_g~AS02, data=cinis_data,
-          FUN = function(x) c(n =sum(!is.na(x)), mean = mean (x, na.rm =TRUE), sd= sd(x, na.rm = TRUE)))
-
-wilcox.test(cinis_g~AS02, data= cinis_data) # no apparent effect of humor on political cynicism scale
-
-
 
 
   # Tolerance for ambiguity - Greater score is greater tolerance
 
-# Some items are reversed. Also remember scale incldue two different dimensions of the construct
+# Some items are reversed. Also remember scale include two different dimensions of the construct
 # Ambiguous stimuli in general (CV01_01, CV01_03,CV01_07, CV01_11, CV01_13) 
     # Reversed: CV01_01, CV01_03, CV01_11
 # AND insoluble stimuli (CV01_02, CV01_05, CV01_09) were considered
@@ -370,8 +358,10 @@ data$ta_g <- rowSums(data[, ta_list], na.rm = TRUE)
 
 describe(data$ta_g) #maximum possible value is 40, minimum possible is 8 this is not normalized
 
-data$ta_g_scaled<-scale(data$ta_g)
-describe(data$ta_g_scaled)
+data$scale_ta<-scale(data$ta_g)
+describe(data$scale_ta)
+
+
 
 # Descriptives  -----------------------------------------------------------
 
@@ -382,11 +372,18 @@ round(100 * prop.table(table(data$SD01)), 2) # 32% men and #68% women
 # Age
 table(data$SD04_01) #more towards the higher end of the spectrum
 
+ggplot(data, aes(x = factor(SD04_01))) +
+  geom_bar() +
+  labs(
+    x = "AGE", 
+    y = "Count",) +
+  theme_minimal()
 
 # Education
 table(data$SD07) #overwhelming majority of university educated people
 round(100 * prop.table(table(data$SD07)), 2)
 
+#- 1 no answer 2.13%
 #2  Educacion Básica Completa 1.06%
 #3	Educación Media Incompleta 3.19%
 #4	Educación Media Completa  20.21%
@@ -407,8 +404,22 @@ ggplot(data, aes(x = factor(SD06))) +
     y = "Count",) +
   theme_minimal()
 
+# Average political position (excluding independents)
+
+describe(data$SD06[bd$SD06 >= 1]) #3.8 it seems more left leaning which will impact on the funniness of the rw memes as seen in the previous pilot
+
+# Political Position Grouped
+
+table(data$id_pol)
+round(100 * prop.table(table(data$id_pol)), 2) # 28.72% lw  26.6% rw 44.68% center/not aligned 
+
+data$id_pol<-as.factor(data$id_pol)
+
+
 # Overall interest in politics  from 1-Not at all interested  to 5-Really interested
 table(data$SD02)
+round(100 * prop.table(table(data$SD02)), 2)
+# not at all interested: 6.38% / not very interested: 10.64% / somewhat: 31.91% / really interested: 28.72% / extremely interested: 22.34%
 
 ggplot(data, aes(x = factor(SD02))) +
   geom_bar() +
@@ -417,10 +428,15 @@ ggplot(data, aes(x = factor(SD02))) +
     x = "Interest in Politics", 
     y = "Count",) +
   theme_minimal()
+# People seem to be at least somewhat interested in politics.
+# Worth considering if the variance of this variable allows to use it as a moderator in other analysis
 
 
 # Overall perception of knowledge in politics  from 1-Nothing  to 4-A lot
 table(data$CV02)
+round(100 * prop.table(table(data$CV02)), 2)
+# a little bi: 17.02% / some: 60,64% / a lot: 22.34%
+# same consideration as before, none sasid they didnt knew anything
 
 ggplot(data, aes(x = factor(CV02))) +
   geom_bar() +
@@ -430,13 +446,9 @@ ggplot(data, aes(x = factor(CV02))) +
     y = "Count",) +
   theme_minimal()
 
-#average time of completion
-describe(data$TIME_SUM)
 
 # relevance of topics
 relevance_table <- lapply(data[relevance], table)
-relevance_table
-
 
   # Create 6 barplots shown together with the values on relevance_table
 
@@ -471,17 +483,76 @@ relevance_table %>%
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 
+# Lets see if the mean relevance for each topic varies across id_pol
+relevance_pol <- data[, c(relevance, "id_pol")] 
+describeBy(relevance_pol[, -ncol(relevance_pol)], group = relevance_pol$id_pol)
+
+
+# Prepare data: compute means by group and topic
+relevance_plot_data <- relevance_pol %>%
+  pivot_longer(cols = starts_with("SD03_"), 
+               names_to = "topic", values_to = "value") %>%
+  group_by(id_pol, topic) %>%
+  summarise(mean = mean(value, na.rm = TRUE), 
+            se   = sd(value, na.rm = TRUE) / sqrt(sum(!is.na(value))), 
+            .groups = "drop") %>%
+  mutate(
+    topic_label = case_when(
+      topic == "SD03_01" ~ "_01:Economic Growth",
+      topic == "SD03_02" ~ "_02:Environmental Protection",
+      topic == "SD03_03" ~ "_03:Human Rights & Equality",
+      topic == "SD03_04" ~ "_04:Security",
+      topic == "SD03_05" ~ "_05:Tech Innovation",
+      topic == "SD03_06" ~ "_06:Police Powers"
+    ),
+    id_pol_label = factor(id_pol, 
+                          levels = c(1, 2, 3),
+                          labels = c("Left (n=27)", "Right (n=25)", "Center/Ind (n=42)"))
+  )
+
+# Plot using 1 SE for intervals as EXPLORATORY ->> CHANGE IN THE REAL EXPERIMENT!!
+ggplot(relevance_plot_data, 
+       aes(x = topic_label, y = mean, color = id_pol_label, group = id_pol)) +
+  geom_line(size = 1) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se), width = 0.1) +
+  labs(
+    title = "Mean Topic Relevance Ratings by Ideological Group",
+    subtitle = "Error bars show ±1 SE",
+    x = "Topic",
+    y = "Mean Relevance (1–4)",
+    color = "Ideological Group",
+    caption = "n per group shown in legend"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 20, hjust = 1),
+    legend.position = "top"
+  )
+
+
+rm (relevance_table, relevance_plot_data)
 
 # Cynicism 
 
 cinismo <- data[, c(cinismo_list, "id_pol")]   #
-describe(cinismo)
-#delete 
+describe(cinismo) #look at those SD and medians!
+
+
+# Create a boxplot of cinis_g
+ggplot(data, aes(y = cinis_g)) +
+  geom_boxplot() +
+  labs(
+    title = "Distribution of Overall Cynicism (cinis_g)",
+    y = "Cynicism Score"
+  ) +
+  theme_minimal()
+
 
 # run a correlation between all the variables in df cinismo 
-cor.plot(cinismo[, !names(cinismo) %in% "id_pol"])
-cor.matrix(cinismo, alpha=0.05, p.adj="bonferroni",print=c ("cor","p", "n"))
-
+cor.plot(cinismo[, !names(cinismo) %in% "id_pol"]) #this looks nice but uses pearson which is incorrect
+cor.matrix(cinismo, method="spearman",alpha=0.05, p.adj="bonferroni",print=c ("cor","p", "n"))
+# the correct one is using spearman
 
 
 # Comparision of mean overall cynicism based on ideological group
@@ -495,75 +566,64 @@ data %>%
     max_cinis_g = max(cinis_g, na.rm = TRUE)
   )
 
+
+# Box plots per id group
+data %>%
+  ggplot(aes(x = id_pol, y = cinis_g)) +
+  geom_boxplot()
+
+
 # Dont look that much into group 3 as it includes independents, people in the center and not affiliated
-# Higher cynicism among rw but huuuuuge sd
+# Higher cynicism among rw but huuuuuge sd. This will probably shrink with more data
+
+
+# Lets see if differences between conditions (H and S) are significant
+cinis_data<-subset(data, AS02 %in% c(1,2)) #remember that CY02_07 and CY02_08 come from a differente scale
+
+aggregate(cinis_g~AS02, data=cinis_data,
+          FUN = function(x) c(n =sum(!is.na(x)), mean = mean (x, na.rm =TRUE), sd= sd(x, na.rm = TRUE)))
+
+wilcox.test(cinis_g~AS02, data= cinis_data) # no apparent effect of humor on political cynicism scale
+
+# Let see if differences between id groups are significant
+
+# Test using an appropiste test for independent samples and ordinal data if the values of cinis_g across the levels of id_pol are equivalent
+# Kruskal-Wallis test for independent samples (ordinal data, non-parametric)
+kruskal.test(cinis_g ~ id_pol, data = data)
+
+# If significant, follow up with pairwise Wilcoxon tests (with Bonferroni correction)
+pairwise.wilcox.test(data$cinis_g, data$id_pol, 
+                     p.adjust.method = "bonferroni", 
+                     alternative = "two.sided")
+
+# So apparently lw are in fact less cynic that independents. Once again this is a problematic group, so the most important comparision is between lw and rw
+
 
 # Tolerance for ambiguity
 
 tolerance <- data[, c(ta_list)]   #, "id_pol"
 describe(tolerance)
-cor.matrix(tolerance, alpha=0.05, p.adj="bonferroni",print=c ("cor","p", "n"))
-cor.plot(tolerance)
+cor.matrix(tolerance, alpha=0.05,method="spearman", p.adj="bonferroni",print=c ("cor","p", "n"))
 
-# Honestly this scale doesnt seem to be working 
-
-
+# Honestly this scale doesn't seem to be working 
+# One of the few significant correlations are negative which makes no sense as I already transformed the inverted items
+# During the testing of the questionnaire some people mentioned difficulties understanding the wording of some items.
 
 # Lets check mean funniness of humorous stimuli vs mean funniness of serious stimuli
 
-# Show the means of the variables defined in string fun_h and fun_s within data
-pairs <- tibble(
-  row_label = sprintf("pos%02d", 1:12),
-  col_h     = sprintf("CQ%02d_01", 1:12),   # humour version, funniness
-  col_s     = sprintf("CQ%02d_01", 13:24),  # serious version, funniness
-  col_of_h  = sprintf("CQ%02d_02", 1:12),   # humour version, offensiveness
-  col_of_s  = sprintf("CQ%02d_02", 13:24)   # serious version, offensiveness
-)
 
+mean_f<-tibble(
+  topic = c("sc+rw","sc+lw","bc+rw","bc+lw","ir+rw","ir+lw",
+            "audio+anti","audio+pro","w+anti","w+pro","cats+anti","cats+pro"),
+  meanH = map_dbl(fun_h, ~mean(data[[.x]], na.rm = TRUE)), # loops over each column name in fun_ calculates mean for each AS02=1
+  meanS = map_dbl(fun_s, ~mean(data[[.x]], na.rm = TRUE)), # loops over each column name in fun_ calculates mean for each AS02=1
+  sdH   = map_dbl(fun_h, ~sd(data[[.x]],   na.rm = TRUE)), # same but with sd
+  sdS   = map_dbl(fun_s, ~sd(data[[.x]],   na.rm = TRUE)), # same but with sd
+  nH    = map_int(fun_h, ~sum(!is.na(data[[.x]]))), # same but with sd
+  nS    = map_int(fun_s, ~sum(!is.na(data[[.x]]))) # same but with sd
+) %>%
+  mutate(across(meanH:sdS, ~round(.x, 2))) #orders the results according to the order defined in topic
 
-table_check <- pairs %>%
-  rowwise() %>%
-  mutate(
-    mean_h    = mean(data[[col_h]],    na.rm = TRUE),
-    mean_s    = mean(data[[col_s]],    na.rm = TRUE),
-    mean_of_h = mean(data[[col_of_h]], na.rm = TRUE),
-    mean_of_s = mean(data[[col_of_s]], na.rm = TRUE),
-    sd_h      = sd(data[[col_h]],      na.rm = TRUE),
-    sd_s      = sd(data[[col_s]],      na.rm = TRUE),
-    sd_of_h   = sd(data[[col_of_h]],   na.rm = TRUE),
-    sd_of_s   = sd(data[[col_of_s]],   na.rm = TRUE),
-    n_h       = sum(!is.na(data[[col_h]])),
-    n_s       = sum(!is.na(data[[col_s]]))
-  ) %>%
-  ungroup() %>%
-  select(row_label, col_h, col_s, col_of_h, col_of_s,
-         mean_h, sd_h, mean_s, sd_s,
-         mean_of_h, sd_of_h, mean_of_s, sd_of_s,
-         n_h, n_s)
-
-table_check
-
-# Is the manipulation working?
-table_tests_fun <- table_check %>%
-  rowwise() %>%
-  mutate(
-    test    = list(t.test(data[[col_h]], data[[col_s]], var.equal = FALSE)),
-    diff    = mean_h - mean_s,
-    t       = test$statistic,
-    df      = test$parameter,
-    p       = test$p.value,
-    ci_lo   = test$conf.int[1],
-    ci_hi   = test$conf.int[2]
-  ) %>%
-  ungroup() %>%
-  mutate(
-    p_bonf   = p.adjust(p, method = "bonferroni"),
-    sig_bonf = p_bonf < .05
-  ) %>%
-  select(row_label, col_h, col_s, mean_h, sd_h, n_h,
-         mean_s, sd_s, n_s, diff, t, df, p, p_bonf, ci_lo, ci_hi, sig_bonf)
-
-table_tests_fun
 
 # the rw version of bc cuts is different in levels, the rw version of crimes register and the pro whatsapp audios
 # this might be the result of the already observed tendency of lw people to give lower grades to opposing view
@@ -593,6 +653,8 @@ data %>%
            list(mean = ~mean(.x, na.rm = TRUE))),
     .groups = "drop"
   )
+
+#LW memes seem to be rated similarly across groups, but there appears to be greater divergence with rw memes. Similarly to what was observed in pilot study
 
 # Checking random assignment ----------------------------------------------
 
