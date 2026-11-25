@@ -654,7 +654,50 @@ data %>%
     .groups = "drop"
   )
 
-#LW memes seem to be rated similarly across groups, but there appears to be greater divergence with rw memes. Similarly to what was observed in pilot study
+#LW memes seem to be rated similarly across groups, but there appears to be greater divergence with rw memes. Similar to what was observed in pilot study
+
+
+#### Objective Ambivalence across ideological groups
+
+# Al together
+data %>%
+  pivot_longer(cols = starts_with("ao_"), names_to = "ao_var", values_to = "value") %>%
+  filter(AS02 %in% c(1, 2)) %>%
+  group_by(id_pol, ao_var, AS02) %>%
+  summarise(mean = mean(value, na.rm = TRUE), .groups = "drop") %>%
+  mutate(ao_var = factor(ao_var, levels = c("ao_sc","ao_bc","ao_ir","ao_ep","ao_audio",
+                                            "ao_w","ao_cats","ao_pol","ao_npol","ao_lw","ao_rw"))) %>%
+  ggplot(aes(x = ao_var, y = mean, color = factor(AS02),
+             shape = factor(AS02), linetype = factor(AS02),
+             group = factor(AS02))) +
+  geom_point(size = 3, position = position_dodge(width = 0.3)) +
+  geom_line(position = position_dodge(width = 0.3)) +
+  facet_wrap(~ id_pol, nrow = 1) +
+  scale_color_manual(values = c("1" = "red", "2" = "blue")) +
+  labs(title = "Mean AO values by AS02 group, per id_pol",
+       x = "AO variable", y = "Mean",
+       color = "AS02", shape = "AS02", linetype = "AS02") +
+  theme_minimal() +
+  theme(legend.position = "top",
+        axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Separated graphs
+data %>%
+  pivot_longer(cols = starts_with("ao_"), names_to = "ao_var", values_to = "value") %>%
+  filter(AS02 %in% c(1, 2)) %>%
+  group_by(id_pol, ao_var, AS02) %>%
+  summarise(mean = mean(value, na.rm = TRUE), .groups = "drop") %>%
+  split(.$id_pol) %>%
+  map(~ ggplot(.x, aes(ao_var, mean, color = factor(AS02), group = factor(AS02))) +
+        geom_point(size = 3, position = position_dodge(0.3)) +
+        geom_line(position = position_dodge(0.3)) +
+        scale_color_manual(values = c("1" = "red", "2" = "blue")) +
+        labs(title = paste("id_pol =", unique(.x$id_pol)), y = "Mean", x = "AO variable") +
+        theme_minimal() +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1)))
+
+
+# LOOK INTO THE DIFFERENCES BETWEEN H/S on the variables ao_lw and ao_rw. Those were measured before any manipulation so if there are big differences it suggest noise, and makes any effect on the manipulated data untrustworthy
 
 # Checking random assignment ----------------------------------------------
 
@@ -696,7 +739,7 @@ table(data$AS03)
 var_char<-c("SD01", "SD02","SD06", "SD07", "CV02") #gender, interest in politics, political alignment, education level, self perception of knowledge in politics
 
 # List of ao variables
-var_ao<-c("ao_ir","ao_bc", "ao_sc", "ao_w", "ao_audio", "ao_cats", "ao_pol", "ao_npol")
+var_ao<-c("ao_ir","ao_bc", "ao_sc", "ao_w", "ao_audio", "ao_cats", "ao_pol", "ao_npol", "ao_lw", "ao_rw")
 
 
 # Selection of variables taht will go in long format
@@ -708,7 +751,7 @@ df<-data[, selected_vars]
 
 # Creating long format
 
-df$AS02<-as.integer(df$AS02)
+df$AS02<-as.integer(df$AS02)# in order to code to run
 
 
 # 1. Topic / stimulus lookup  Pairing of topic with measurements fo funniness and offensiveness
@@ -729,7 +772,7 @@ topics <- tribble(
 
 df_ao <- df %>%
   select(all_of("CASE"), id_pol, AS02,
-         starts_with("ao_"), -ao_pol, -ao_npol) %>%
+         starts_with("ao_"), -ao_pol, -ao_npol, -ao_lw, -ao_rw) %>%
   pivot_longer(
     cols      = -c(all_of("CASE"), id_pol, AS02),
     names_to  = "ao_col",
@@ -794,12 +837,12 @@ df_long <- df_ao %>%
   left_join(
     df %>% select(CASE, SD01, SD02, SD06, SD07, CV02,
                   CY02_01:CY02_08, SD03_01:SD03_06,
-                  ao_pol, ao_npol),
+                  ao_pol, ao_npol, ao_lw, ao_rw),
     by = "CASE"
   ) #%>%
  # select(AS02)
 
-rm(topics, df_ao, df_cq,topics_long, df_cq_wide)
+rm(topics, df_ao, df_cq,topics_long, df_cq_wide,df)
 
 # 7. Optional: collapse the pair to a mean covariate
 
@@ -807,44 +850,63 @@ rm(topics, df_ao, df_cq,topics_long, df_cq_wide)
 #   mutate(fun_mean = rowMeans(cbind(fun_1, fun_2), na.rm = TRUE),
 #          of_mean  = rowMeans(cbind(of_1,  of_2 ), na.rm = TRUE))
 
+df<-df_long
+rm(df_long)
 
+str(df)
 
-
+df$AS02<-as.factor(df$AS02)
+df$CASE<-as.factor(df$CASE)
+df$topic_type <-as.factor(df$topic_type)  # 1 IS NON POLITICAL
 
 
 
 
 # Analysis of OA ----------------------------------------------------------
 
-df_long$AS02<-as.factor(df_long$AS02)
-df_long$topic_type <-as.factor(df_long$topic_type) # 1  is non political 
 
-str(df_long$topic_type)
+# I should define as baseline comparisions: serious, and non political
 
-# I should define as baselien comparisions: serious, and non political
-df_long$AS02 <- relevel(df_long$AS02, ref = "2") # reference is serious
-df_long$topic_type <- relevel(df_long$topic_type, ref = "political") # reference is political
-
-
-factor(df_long$AS02, levels = c(2, 1), labels = c("Serious", "Humor"))
+df <- df %>%
+  mutate(AS02       = relevel(factor(AS02), ref = "2"), #setting serious as reference
+         topic_type = relevel(factor(topic_type), ref = "nonpolitical")) #setting nonpolitical as reference
 
 m1 <- lmer(ambivalence ~ AS02* topic_type + (1 | CASE), # 
-               data = df_long, REML = TRUE)
+               data = df, REML = TRUE)
 
 summary(m1, ddf="Kenward-Roger")
 
+
+
+# Descriptives of ao mean: topic_type X humor_condition
+df %>%
+  group_by(AS02, topic_type) %>%
+  summarise(mean = mean(ambivalence),
+            sd   = sd(ambivalence),
+            n_obs = n(),
+            n_participants = n_distinct(CASE),
+            .groups = "drop")
+
+
+# Setting contrasts
 emm <- emmeans(m1, ~ AS02 | topic_type, lmer.df = "kenward-roger")
-contrast(emm, "revpairwise")                                # Humor − Serious within each topic type
-contrast(emmeans(m1, ~ AS02), "revpairwise")   
+emm
+
 
 
 # Does humor in messages expressing opposing views increases objective ambivalence?
-
+emm_cue <- emmeans(m1, ~ AS02, lmer.df = "kenward-roger")
+q1 <- contrast(emm_cue, "revpairwise")
+q1
+confint(q1)
 
 # Does the effect of humor on oa changes across topic? Hypothesis is that it will be greater in non political
 
 
 # Does using humor cues in political messages expressing opposing views increases objective ambivalence compared to not using humorous cues?
+
+
+
 
 
 # This results might be the results of Winner's Curse. Humor does seem to be doing something. However this should be viewed with great skepticism, as this pilot is extremely underpowered and effect will probably be quite different in the final study!!
