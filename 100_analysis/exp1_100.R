@@ -1,4 +1,3 @@
-#TESTING NEW PAT
 
 # Dependencies ------------------------------------------------------------
 
@@ -760,7 +759,7 @@ df_long$topic_type <-as.factor(df_long$topic_type) # 1  is non political
 
 str(df_long$topic_type)
 
-# I Sshould define as baselien comparisions: serious, and non political
+# I should define as baselien comparisions: serious, and non political
 df_long$AS02 <- relevel(df_long$AS02, ref = "2") # reference is serious
 df_long$topic_type <- relevel(df_long$topic_type, ref = "political") # reference is political
 
@@ -786,27 +785,10 @@ contrast(emmeans(m1, ~ AS02), "revpairwise")
 # Does using humor cues in political messages expressing opposing views increases objective ambivalence compared to not using humorous cues?
 
 
+# This results might be the results of Winner's Curse. Humor does seem to be doing something. However this should be viewed with great skepticism, as this pilot is extremely underpowered and effect will probably be quite different in the final study!!
 
 
 
-
-
-
-
-maineffect<- lmer(ambivalence ~ AS02+ (1 | CASE), # 
-                  data = df_long, REML = TRUE)
-summary(maineffect, ddf="Kenward-Roger") 
-
-
-# Maximal structure doesnt work
-
-max <- lmer(ambivalence ~ AS02 * topic_type + (1 + topic_type | CASE),
-              data = df_long, REML = TRUE)
-
-summary(max, ddf="Kenward-Roger") 
-
-
-df$id_pol<-as.factor(df$id_pol)
 
 ####
 t.test(ao_cats ~ AS02, data = data, var.equal = FALSE)
