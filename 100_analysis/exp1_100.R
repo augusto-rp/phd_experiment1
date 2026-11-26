@@ -938,8 +938,14 @@ confint(ct)
 
 
 
+# Adding random slope (adding random interpet for topic_type lead to singular fir)
+m2 <- lmer(ambivalence ~ AS02* topic_type + (topic_type | CASE), # 
+           data = df, REML = TRUE)
+summary(m2, ddf="Kenward-Roger")
 
-####
-t.test(ao_cats ~ AS02, data = data, var.equal = FALSE)
-cohens_d(ao_ep~AS02, data=data)
+anova(m1, m2)
+
+
+
+
 
