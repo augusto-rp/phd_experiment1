@@ -871,11 +871,21 @@ df <- df %>%
   mutate(AS02       = relevel(factor(AS02), ref = "2"), #setting serious as reference
          topic_type = relevel(factor(topic_type), ref = "nonpolitical")) #setting nonpolitical as reference
 
+contrasts(df$AS02) <- c(-0.5, 0.5) 
+contrasts(df$topic_type) <- c(-0.5, 0.5)  
+
+
 m1 <- lmer(ambivalence ~ AS02* topic_type + (1 | CASE), # 
                data = df, REML = TRUE)
 
+
 summary(m1, ddf="Kenward-Roger")
 
+
+# intercept is the grand mean of all four cells
+# AS021 is the average effect of humor on OA
+# topic type the average difference between p and NP averaged across all conditions
+# Interaction
 
 
 # Descriptives of ao mean: topic_type X humor_condition
@@ -895,6 +905,9 @@ emm
 
 
 # Does humor in messages expressing opposing views increases objective ambivalence?
+
+# Already with results of M1 i can answer it. But this provdes CI
+
 emm_cue <- emmeans(m1, ~ AS02, lmer.df = "kenward-roger")
 q1 <- contrast(emm_cue, "revpairwise")
 q1
@@ -902,11 +915,23 @@ confint(q1)
 
 # Does the effect of humor on oa changes across topic? Hypothesis is that it will be greater in non political
 
+# Existing hypothesis:
+emm_int <- emmeans(m1, ~ AS02 | topic_type, lmer.df = "kenward-roger")
+ct      <- contrast(emm_int, "revpairwise")      # Humor - Serious within each topic type
+int_ct  <- pairs(ct, by = NULL)                  # non-political minus political
+int_ct
+confint(int_ct)
+
+test(int_ct, side = ">")    # H: humor effect GREATER in non-political (your hypothesis)
+test(int_ct, side = "<")    # H: humor effect GREATER in political (opposite direction)
+
 
 # Does using humor cues in political messages expressing opposing views increases objective ambivalence compared to not using humorous cues?
 
 
-
+# Not answered by summary(m1): needs the simple effect within political.
+ct                          # rows: Humor - Serious for nonpolitical and political
+confint(ct)
 
 
 # This results might be the results of Winner's Curse. Humor does seem to be doing something. However this should be viewed with great skepticism, as this pilot is extremely underpowered and effect will probably be quite different in the final study!!
